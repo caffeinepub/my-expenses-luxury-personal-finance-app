@@ -1,4 +1,4 @@
-# My Expenses - Luxury Personal Finance App
+# My Expenses   Luxury Personal Finance App
 
 A mobile-first personal finance application for tracking expenses, managing friend balances, and settling debts with a premium dark UI experience. Optimized as a Progressive Web App (PWA) for Android installation.
 
@@ -11,7 +11,6 @@ A mobile-first personal finance application for tracking expenses, managing frie
 - Payment logic:
   - If "Me" paid: adds to Personal Expenses and Total Expenses
   - If "Friend" paid: adds to Personal Expenses and Total Expenses, records as borrowed amount on friend's account
-- Automatic Lent transaction creation: When assigning a friend during expense entry (when "Me" paid), automatically creates a corresponding Lent transaction for that friend
 - Real-time updates to all related calculations and views
 
 ### Tab 2: Friends
@@ -92,6 +91,14 @@ A mobile-first personal finance application for tracking expenses, managing frie
 - Friend balance calculations: Balance = totalLent - totalBorrowed
 - Summary calculations must reflect corrected logic for totalLent and totalBorrowed
 - Data migration required to re-evaluate existing transaction data with corrected logic
+
+## Automatic Lent Transaction Creation
+- Backend `addExpense` function must implement automatic transaction creation:
+  - When adding an expense with a friend assigned and `paidBy == "Me"`, automatically create a corresponding Lent transaction for that friend
+  - The automatic Lent transaction uses the same amount, date, and item description as the expense
+  - Friend's balance is updated (totalLent += amount) through the automatic transaction
+  - All related calculations and summaries are updated automatically
+  - React Query hooks refresh to reflect the changes across all views
 
 ## UI/UX Requirements
 - Mobile-first responsive design
