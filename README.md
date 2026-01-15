@@ -1,2 +1,8 @@
-# my-expenses-luxury-personal-finance-app
-Exported from Caffeine project: My Expenses   Luxury Personal Finance App
+## My Expenses   Luxury Personal Finance App
+
+To run app build and run docker image:
+
+```
+docker build -t app .
+docker run -it --network host app
+```
