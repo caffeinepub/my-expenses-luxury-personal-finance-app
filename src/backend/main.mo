@@ -8,7 +8,9 @@ import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   type Date = Time.Time;
 
@@ -120,22 +122,20 @@ actor {
       isSettled = false;
     };
 
-    if (paidBy != "Me") {
-      switch (friendId) {
-        case (?fId) {
-          switch (data.friends.get(fId)) {
-            case (null) { Runtime.trap("Friend not found") };
-            case (?friend) {
-              let updatedFriend = {
-                friend with
-                totalBorrowed = friend.totalBorrowed + amount;
-              };
-              data.friends.add(friend.id, updatedFriend);
-            };
-          };
+    switch (friendId) {
+      case (?fId) {
+        let friend = switch (data.friends.get(fId)) {
+          case (?f) { f };
+          case (null) { Runtime.trap("Friend not found") };
         };
-        case (null) { Runtime.trap("Friend ID required when friend paid") };
+        let updatedFriend = {
+          friend with
+          totalLent = if (paidBy == "Me") { friend.totalLent + amount } else { friend.totalLent };
+          totalBorrowed = if (paidBy != "Me") { friend.totalBorrowed + amount } else { friend.totalBorrowed };
+        };
+        data.friends.add(friend.id, updatedFriend);
       };
+      case (null) {};
     };
 
     data.expenses.add(data.nextExpenseId, expense);
@@ -149,59 +149,61 @@ actor {
 
     let data = getUserData(caller);
 
-    switch (data.expenses.get(id)) {
+    let oldExpense = switch (data.expenses.get(id)) {
+      case (?e) { e };
       case (null) { Runtime.trap("Expense not found") };
-      case (?oldExpense) {
-        // Revert old expense effects
-        if (oldExpense.paidBy != "Me") {
-          switch (oldExpense.friendId) {
-            case (?fId) {
-              switch (data.friends.get(fId)) {
-                case (?friend) {
-                  let updatedFriend = {
-                    friend with
-                    totalBorrowed = friend.totalBorrowed - oldExpense.amount;
-                  };
-                  data.friends.add(friend.id, updatedFriend);
-                };
-                case (null) {};
-              };
-            };
-            case (null) {};
-          };
-        };
-
-        // Apply new expense effects
-        if (paidBy != "Me") {
-          switch (friendId) {
-            case (?fId) {
-              switch (data.friends.get(fId)) {
-                case (null) { Runtime.trap("Friend not found") };
-                case (?friend) {
-                  let updatedFriend = {
-                    friend with
-                    totalBorrowed = friend.totalBorrowed + amount;
-                  };
-                  data.friends.add(friend.id, updatedFriend);
-                };
-              };
-            };
-            case (null) { Runtime.trap("Friend ID required when friend paid") };
-          };
-        };
-
-        let updatedExpense : Expense = {
-          id;
-          item;
-          amount;
-          date;
-          paidBy;
-          friendId;
-          isSettled = oldExpense.isSettled;
-        };
-        data.expenses.add(id, updatedExpense);
-      };
     };
+
+    switch (oldExpense.friendId) {
+      case (?fId) {
+        let friend = switch (data.friends.get(fId)) {
+          case (?f) { f };
+          case (null) { Runtime.trap("Friend not found") };
+        };
+        let updatedFriend = {
+          friend with
+          totalLent = if (oldExpense.paidBy == "Me") { friend.totalLent - oldExpense.amount } else {
+            friend.totalLent;
+          };
+          totalBorrowed = if (oldExpense.paidBy != "Me") {
+            friend.totalBorrowed - oldExpense.amount;
+          } else { friend.totalBorrowed };
+        };
+        data.friends.add(friend.id, updatedFriend);
+      };
+      case (null) {};
+    };
+
+    switch (friendId) {
+      case (?fId) {
+        let friend = switch (data.friends.get(fId)) {
+          case (?f) { f };
+          case (null) { Runtime.trap("Friend not found") };
+        };
+        let updatedFriend = {
+          friend with
+          totalLent = if (paidBy == "Me") { friend.totalLent + amount } else {
+            friend.totalLent;
+          };
+          totalBorrowed = if (paidBy != "Me") { friend.totalBorrowed + amount } else {
+            friend.totalBorrowed;
+          };
+        };
+        data.friends.add(friend.id, updatedFriend);
+      };
+      case (null) {};
+    };
+
+    let updatedExpense : Expense = {
+      id;
+      item;
+      amount;
+      date;
+      paidBy;
+      friendId;
+      isSettled = oldExpense.isSettled;
+    };
+    data.expenses.add(id, updatedExpense);
   };
 
   public shared ({ caller }) func deleteExpense(id : Nat) : async () {
@@ -211,31 +213,32 @@ actor {
 
     let data = getUserData(caller);
 
-    switch (data.expenses.get(id)) {
+    let expense = switch (data.expenses.get(id)) {
+      case (?e) { e };
       case (null) { Runtime.trap("Expense not found") };
-      case (?expense) {
-        // Revert expense effects
-        if (expense.paidBy != "Me") {
-          switch (expense.friendId) {
-            case (?fId) {
-              switch (data.friends.get(fId)) {
-                case (?friend) {
-                  let updatedFriend = {
-                    friend with
-                    totalBorrowed = friend.totalBorrowed - expense.amount;
-                  };
-                  data.friends.add(friend.id, updatedFriend);
-                };
-                case (null) {};
-              };
-            };
-            case (null) {};
-          };
-        };
-
-        data.expenses.remove(id);
-      };
     };
+
+    switch (expense.friendId) {
+      case (?fId) {
+        let friend = switch (data.friends.get(fId)) {
+          case (?f) { f };
+          case (null) { Runtime.trap("Friend not found") };
+        };
+        let updatedFriend = {
+          friend with
+          totalLent = if (expense.paidBy == "Me") { friend.totalLent - expense.amount } else {
+            friend.totalLent;
+          };
+          totalBorrowed = if (expense.paidBy != "Me") {
+            friend.totalBorrowed - expense.amount;
+          } else { friend.totalBorrowed };
+        };
+        data.friends.add(friend.id, updatedFriend);
+      };
+      case (null) {};
+    };
+
+    data.expenses.remove(id);
   };
 
   public shared ({ caller }) func addFriend(name : Text) : async Nat {
@@ -302,20 +305,18 @@ actor {
 
     data.settlements.add(data.nextSettlementId, settlement);
 
-    switch (data.friends.get(friendId)) {
+    let friend = switch (data.friends.get(friendId)) {
+      case (?f) { f };
       case (null) { Runtime.trap("Friend not found") };
-      case (?friend) {
-        let updatedFriend = {
-          friend with
-          totalBorrowed = if (direction == "PaidToMe") {
-            friend.totalBorrowed - amount;
-          } else {
-            friend.totalBorrowed;
-          };
-        };
-        data.friends.add(friendId, updatedFriend);
+    };
+
+    let updatedFriend = {
+      friend with
+      totalBorrowed = if (direction == "PaidToMe") { friend.totalBorrowed - amount } else {
+        friend.totalBorrowed;
       };
     };
+    data.friends.add(friendId, updatedFriend);
 
     data.nextSettlementId += 1;
   };
@@ -327,51 +328,45 @@ actor {
 
     let data = getUserData(caller);
 
-    switch (data.settlements.get(id)) {
+    let oldSettlement = switch (data.settlements.get(id)) {
+      case (?s) { s };
       case (null) { Runtime.trap("Settlement not found") };
-      case (?oldSettlement) {
-        // Revert old settlement effects
-        switch (data.friends.get(oldSettlement.friendId)) {
-          case (?friend) {
-            let revertedFriend = {
-              friend with
-              totalBorrowed = if (oldSettlement.direction == "PaidToMe") {
-                friend.totalBorrowed + oldSettlement.amount;
-              } else {
-                friend.totalBorrowed;
-              };
-            };
-            data.friends.add(oldSettlement.friendId, revertedFriend);
-          };
-          case (null) {};
-        };
+    };
 
-        // Apply new settlement effects
-        switch (data.friends.get(friendId)) {
-          case (null) { Runtime.trap("Friend not found") };
-          case (?friend) {
-            let updatedFriend = {
-              friend with
-              totalBorrowed = if (direction == "PaidToMe") {
-                friend.totalBorrowed - amount;
-              } else {
-                friend.totalBorrowed;
-              };
-            };
-            data.friends.add(friendId, updatedFriend);
-          };
-        };
+    let oldFriend = switch (data.friends.get(oldSettlement.friendId)) {
+      case (?f) { f };
+      case (null) { Runtime.trap("Friend not found") };
+    };
 
-        let updatedSettlement : Settlement = {
-          id;
-          friendId;
-          amount;
-          date;
-          direction;
-        };
-        data.settlements.add(id, updatedSettlement);
+    let revertedFriend = {
+      oldFriend with
+      totalBorrowed = if (oldSettlement.direction == "PaidToMe") {
+        oldFriend.totalBorrowed + oldSettlement.amount;
+      } else { oldFriend.totalBorrowed };
+    };
+    data.friends.add(oldSettlement.friendId, revertedFriend);
+
+    let newFriend = switch (data.friends.get(friendId)) {
+      case (?f) { f };
+      case (null) { Runtime.trap("Friend not found") };
+    };
+
+    let updatedFriend = {
+      newFriend with
+      totalBorrowed = if (direction == "PaidToMe") { newFriend.totalBorrowed - amount } else {
+        newFriend.totalBorrowed;
       };
     };
+    data.friends.add(friendId, updatedFriend);
+
+    let updatedSettlement : Settlement = {
+      id;
+      friendId;
+      amount;
+      date;
+      direction;
+    };
+    data.settlements.add(id, updatedSettlement);
   };
 
   public shared ({ caller }) func deleteSettlement(id : Nat) : async () {
@@ -381,28 +376,25 @@ actor {
 
     let data = getUserData(caller);
 
-    switch (data.settlements.get(id)) {
+    let settlement = switch (data.settlements.get(id)) {
+      case (?s) { s };
       case (null) { Runtime.trap("Settlement not found") };
-      case (?settlement) {
-        // Revert settlement effects
-        switch (data.friends.get(settlement.friendId)) {
-          case (?friend) {
-            let updatedFriend = {
-              friend with
-              totalBorrowed = if (settlement.direction == "PaidToMe") {
-                friend.totalBorrowed + settlement.amount;
-              } else {
-                friend.totalBorrowed;
-              };
-            };
-            data.friends.add(settlement.friendId, updatedFriend);
-          };
-          case (null) {};
-        };
-
-        data.settlements.remove(id);
-      };
     };
+
+    let friend = switch (data.friends.get(settlement.friendId)) {
+      case (?f) { f };
+      case (null) { Runtime.trap("Friend not found") };
+    };
+
+    let updatedFriend = {
+      friend with
+      totalBorrowed = if (settlement.direction == "PaidToMe") {
+        friend.totalBorrowed + settlement.amount;
+      } else { friend.totalBorrowed };
+    };
+    data.friends.add(settlement.friendId, updatedFriend);
+
+    data.settlements.remove(id);
   };
 
   module Expense {
@@ -459,8 +451,8 @@ actor {
     };
 
     for (friend in data.friends.values()) {
-      totalBorrowed += friend.totalBorrowed;
       totalLent += friend.totalLent;
+      totalBorrowed += friend.totalBorrowed;
     };
 
     for (settlement in data.settlements.values()) {
@@ -470,7 +462,7 @@ actor {
     };
 
     let friendsSummaryArray = data.friends.values().toArray().map(
-      func(friend) { (friend.id, friend.totalBorrowed - friend.totalLent) }
+      func(friend) { (friend.id, friend.totalLent - friend.totalBorrowed) }
     );
 
     {

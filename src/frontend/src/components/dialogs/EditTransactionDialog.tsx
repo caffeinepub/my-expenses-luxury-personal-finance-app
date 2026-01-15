@@ -57,16 +57,18 @@ export default function EditTransactionDialog({ transaction, friend, open, onOpe
 
     try {
       if (transaction.source === 'expense') {
+        // Lent transaction (expense where I paid)
         await updateExpense.mutateAsync({
           id: transaction.id,
           item: item.trim(),
           amount: amountNum,
           date: dateTimestamp,
-          paidBy: friend.name,
+          paidBy: 'Me',
           friendId: friend.id,
         });
         toast.success('Transaction updated!');
       } else {
+        // Borrowed transaction (settlement where friend paid me)
         await updateSettlement.mutateAsync({
           id: transaction.id,
           friendId: friend.id,
@@ -98,7 +100,7 @@ export default function EditTransactionDialog({ transaction, friend, open, onOpe
               id="edit-item"
               value={item}
               onChange={(e) => setItem(e.target.value)}
-              placeholder={transaction.source === 'expense' ? 'What was borrowed?' : 'Payment description'}
+              placeholder={transaction.source === 'expense' ? 'What did you lend for?' : 'Payment description'}
               className="bg-background/50 border-white/10"
             />
           </div>

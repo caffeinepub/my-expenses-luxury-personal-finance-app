@@ -16,7 +16,7 @@ interface AddTransactionDialogProps {
 }
 
 export default function AddTransactionDialog({ friend, open, onOpenChange }: AddTransactionDialogProps) {
-  const [transactionType, setTransactionType] = useState<'borrowed' | 'lent'>('borrowed');
+  const [transactionType, setTransactionType] = useState<'lent' | 'borrowed'>('lent');
   const [item, setItem] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -28,7 +28,7 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
     setItem('');
     setAmount('');
     setDate(new Date().toISOString().split('T')[0]);
-    setTransactionType('borrowed');
+    setTransactionType('lent');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,25 +48,25 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
     const dateTimestamp = BigInt(new Date(date).getTime() * 1000000);
 
     try {
-      if (transactionType === 'borrowed') {
-        // Add as expense where friend paid
+      if (transactionType === 'lent') {
+        // Add as expense where I paid
         await addExpense.mutateAsync({
           item: item.trim(),
           amount: amountNum,
           date: dateTimestamp,
-          paidBy: friend.name,
+          paidBy: 'Me',
           friendId: friend.id,
         });
-        toast.success('Borrowed transaction added!');
+        toast.success('Lent transaction added!');
       } else {
-        // Add as settlement where friend paid me
+        // Add as settlement where friend paid me back
         await addSettlement.mutateAsync({
           friendId: friend.id,
           amount: amountNum,
           date: dateTimestamp,
           direction: 'PaidToMe',
         });
-        toast.success('Lent transaction added!');
+        toast.success('Borrowed transaction added!');
       }
       resetForm();
       onOpenChange(false);
@@ -83,20 +83,20 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Tabs value={transactionType} onValueChange={(v) => setTransactionType(v as 'borrowed' | 'lent')}>
+          <Tabs value={transactionType} onValueChange={(v) => setTransactionType(v as 'lent' | 'borrowed')}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="borrowed">Borrowed</TabsTrigger>
               <TabsTrigger value="lent">Lent</TabsTrigger>
+              <TabsTrigger value="borrowed">Borrowed</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="borrowed" className="space-y-4 mt-4">
+            <TabsContent value="lent" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="item" className="text-white">Item</Label>
                 <Input
                   id="item"
                   value={item}
                   onChange={(e) => setItem(e.target.value)}
-                  placeholder="What was borrowed?"
+                  placeholder="What did you lend for?"
                   className="bg-background/50 border-white/10"
                 />
               </div>
@@ -126,11 +126,11 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
               </div>
             </TabsContent>
 
-            <TabsContent value="lent" className="space-y-4 mt-4">
+            <TabsContent value="borrowed" className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="lent-item" className="text-white">Description</Label>
+                <Label htmlFor="borrowed-item" className="text-white">Description</Label>
                 <Input
-                  id="lent-item"
+                  id="borrowed-item"
                   value={item}
                   onChange={(e) => setItem(e.target.value)}
                   placeholder="Payment description"
@@ -139,9 +139,9 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lent-amount" className="text-white">Amount (₹)</Label>
+                <Label htmlFor="borrowed-amount" className="text-white">Amount (₹)</Label>
                 <Input
-                  id="lent-amount"
+                  id="borrowed-amount"
                   type="number"
                   step="0.01"
                   value={amount}
@@ -152,9 +152,9 @@ export default function AddTransactionDialog({ friend, open, onOpenChange }: Add
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lent-date" className="text-white">Date</Label>
+                <Label htmlFor="borrowed-date" className="text-white">Date</Label>
                 <Input
-                  id="lent-date"
+                  id="borrowed-date"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}

@@ -1,4 +1,4 @@
-# My Expenses - Luxury Personal Finance App
+# My Expenses   Luxury Personal Finance App
 
 A mobile-first personal finance application for tracking expenses, managing friend balances, and settling debts with a premium dark UI experience. Optimized as a Progressive Web App (PWA) for Android installation.
 
@@ -20,14 +20,14 @@ A mobile-first personal finance application for tracking expenses, managing frie
 - Individual friend detail view with:
   - Friend's name prominently displayed at the top
   - Current balance clearly shown (green if positive/lent, red if negative/borrowed)
-  - Chronological list of all transactions (Borrowed in red, Lent in green)
+  - Chronological list of all transactions (Lent in green, Borrowed in red)
   - Floating "Add Transaction" button styled with luxury theme
   - Add Transaction Form with:
-    - Selection between Borrowed or Lent
+    - Selection between Lent or Borrowed
     - Inputs for Amount (₹), Item, and Date
     - Save functionality that creates new transaction and recalculates balances
   - Edit and delete options for each transaction with respective modals/forms
-- Auto-calculated totals: borrowed amount, lent amount, net balance per friend
+- Auto-calculated totals: lent amount, borrowed amount, net balance per friend
 - Smooth luxury-style animations for all UI transitions (navigation, adding/editing/deleting)
 
 ### Tab 3: Summary
@@ -38,8 +38,8 @@ A mobile-first personal finance application for tracking expenses, managing frie
 - Expandable breakdown by month, item, friend, and date
 
 **Friends Summary Section:**
-- Overall total borrowed across all friends
 - Overall total lent across all friends
+- Overall total borrowed across all friends
 - Combined view of all friend balances
 
 ### Tab 4: Settlement
@@ -83,14 +83,23 @@ A mobile-first personal finance application for tracking expenses, managing frie
 - Backend stores: expenses, friends, transactions, settlements
 - Backend operations: CRUD operations for all data types, balance calculations, summary aggregations
 
+## Transaction Logic Corrections
+- Backend must implement corrected transaction logic:
+  - Money given by me = Lent (positive balance increment; friend owes me)
+  - Money received by me = Borrowed (negative balance decrement; I owe friend)
+- All backend functions must be updated: addExpense, updateExpense, deleteExpense, addSettlement, updateSettlement, deleteSettlement, getSummary
+- Friend balance calculations: Balance = totalLent - totalBorrowed
+- Summary calculations must reflect corrected logic for totalLent and totalBorrowed
+- Data migration required to re-evaluate existing transaction data with corrected logic
+
 ## UI/UX Requirements
 - Mobile-first responsive design
 - Dark luxury theme:
   - Deep black backgrounds
   - Dark glass effect cards
   - White and grey text
-  - Green for money received/positive balances
-  - Red for money owed/negative balances
+  - Green for money lent/positive balances
+  - Red for money borrowed/negative balances
 - Smooth animations and transitions throughout
 - Premium feel with luxury styling
 - Instant cache refresh using React Query hooks

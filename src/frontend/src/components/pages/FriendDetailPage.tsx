@@ -40,19 +40,19 @@ export default function FriendDetailPage({ friend, onBack }: FriendDetailPagePro
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const balance = friend.totalBorrowed - friend.totalLent;
+  const balance = friend.totalLent - friend.totalBorrowed;
   const isPositive = balance > 0;
 
   // Combine expenses and settlements into transactions
   const transactions: Transaction[] = [];
 
-  // Add borrowed transactions (expenses where friend paid)
+  // Add lent transactions (expenses where I paid for friend)
   if (expenses) {
-    const friendExpenses = expenses.filter(exp => exp.friendId === friend.id && exp.paidBy !== 'Me');
+    const friendExpenses = expenses.filter(exp => exp.friendId === friend.id && exp.paidBy === 'Me');
     friendExpenses.forEach(exp => {
       transactions.push({
         id: exp.id,
-        type: 'borrowed',
+        type: 'lent',
         item: exp.item,
         amount: exp.amount,
         date: exp.date,
@@ -61,13 +61,13 @@ export default function FriendDetailPage({ friend, onBack }: FriendDetailPagePro
     });
   }
 
-  // Add lent transactions (settlements where friend paid back)
+  // Add borrowed transactions (settlements where friend paid me back)
   if (settlements) {
     const friendSettlements = settlements.filter(s => s.friendId === friend.id);
     friendSettlements.forEach(settlement => {
       transactions.push({
         id: settlement.id,
-        type: 'lent',
+        type: 'borrowed',
         item: settlement.direction === 'PaidToMe' ? 'Payment received' : 'Payment made',
         amount: settlement.amount,
         date: settlement.date,
@@ -131,16 +131,6 @@ export default function FriendDetailPage({ friend, onBack }: FriendDetailPagePro
         <div className="space-y-6">
           {/* Balance Summary */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-2xl bg-gradient-to-br from-red-500/10 to-red-500/5 p-4 border border-red-500/20 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="rounded-full bg-red-500/20 p-1.5">
-                  <TrendingDown className="h-4 w-4 text-red-400" />
-                </div>
-                <p className="text-xs text-red-400 font-medium">Borrowed</p>
-              </div>
-              <p className="text-xl font-bold text-white">{formatCurrency(friend.totalBorrowed)}</p>
-            </div>
-
             <div className="rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 p-4 border border-green-500/20 backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-2">
                 <div className="rounded-full bg-green-500/20 p-1.5">
@@ -151,9 +141,19 @@ export default function FriendDetailPage({ friend, onBack }: FriendDetailPagePro
               <p className="text-xl font-bold text-white">{formatCurrency(friend.totalLent)}</p>
             </div>
 
+            <div className="rounded-2xl bg-gradient-to-br from-red-500/10 to-red-500/5 p-4 border border-red-500/20 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-full bg-red-500/20 p-1.5">
+                  <TrendingDown className="h-4 w-4 text-red-400" />
+                </div>
+                <p className="text-xs text-red-400 font-medium">Borrowed</p>
+              </div>
+              <p className="text-xl font-bold text-white">{formatCurrency(friend.totalBorrowed)}</p>
+            </div>
+
             <div className="rounded-2xl bg-gradient-to-br from-card/80 to-card/40 p-4 border border-white/10 backdrop-blur-sm">
               <p className="text-xs text-muted-foreground mb-2 font-medium">Balance</p>
-              <p className={`text-xl font-bold ${isPositive ? 'text-red-400' : balance < 0 ? 'text-green-400' : 'text-muted-foreground'}`}>
+              <p className={`text-xl font-bold ${isPositive ? 'text-green-400' : balance < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
                 {isPositive ? '+' : ''}{formatCurrency(balance)}
               </p>
             </div>
@@ -179,22 +179,22 @@ export default function FriendDetailPage({ friend, onBack }: FriendDetailPagePro
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className={`rounded-full p-1.5 ${transaction.type === 'borrowed' ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
-                            {transaction.type === 'borrowed' ? (
-                              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                            ) : (
+                          <div className={`rounded-full p-1.5 ${transaction.type === 'lent' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                            {transaction.type === 'lent' ? (
                               <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                            ) : (
+                              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
                             )}
                           </div>
-                          <span className={`text-xs font-medium ${transaction.type === 'borrowed' ? 'text-red-400' : 'text-green-400'}`}>
-                            {transaction.type === 'borrowed' ? 'Borrowed' : 'Lent'}
+                          <span className={`text-xs font-medium ${transaction.type === 'lent' ? 'text-green-400' : 'text-red-400'}`}>
+                            {transaction.type === 'lent' ? 'Lent' : 'Borrowed'}
                           </span>
                         </div>
                         <p className="text-base font-semibold text-white mb-1">{transaction.item}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(transaction.date)}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <p className={`text-lg font-bold ${transaction.type === 'borrowed' ? 'text-red-400' : 'text-green-400'}`}>
+                        <p className={`text-lg font-bold ${transaction.type === 'lent' ? 'text-green-400' : 'text-red-400'}`}>
                           {formatCurrency(transaction.amount)}
                         </p>
                         <div className="flex gap-1">

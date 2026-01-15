@@ -111,20 +111,20 @@ export default function SummaryTab() {
         <h3 className="text-lg font-semibold text-white">Friends Summary</h3>
         
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/5 p-4 backdrop-blur-sm border border-red-500/10">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingDown className="h-4 w-4 text-red-400" />
-              <p className="text-xs text-red-400">Total Borrowed</p>
-            </div>
-            <p className="text-xl font-bold text-white">{formatCurrency(summary.totalBorrowed)}</p>
-          </div>
-
           <div className="rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/5 p-4 backdrop-blur-sm border border-green-500/10">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-green-400" />
               <p className="text-xs text-green-400">Total Lent</p>
             </div>
             <p className="text-xl font-bold text-white">{formatCurrency(summary.totalLent)}</p>
+          </div>
+
+          <div className="rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/5 p-4 backdrop-blur-sm border border-red-500/10">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDown className="h-4 w-4 text-red-400" />
+              <p className="text-xs text-red-400">Total Borrowed</p>
+            </div>
+            <p className="text-xl font-bold text-white">{formatCurrency(summary.totalBorrowed)}</p>
           </div>
         </div>
 
@@ -135,12 +135,12 @@ export default function SummaryTab() {
               <p className="text-sm font-medium text-white">Friend Balances</p>
             </div>
             {friends.map((friend) => {
-              const balance = friend.totalBorrowed - friend.totalLent;
+              const balance = friend.totalLent - friend.totalBorrowed;
               const isPositive = balance > 0;
               return (
                 <div key={friend.id.toString()} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{friend.name}</span>
-                  <span className={`text-sm font-semibold ${isPositive ? 'text-red-400' : balance < 0 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                  <span className={`text-sm font-semibold ${isPositive ? 'text-green-400' : balance < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
                     {isPositive ? '+' : ''}{formatCurrency(balance)}
                   </span>
                 </div>
